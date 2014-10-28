@@ -1,0 +1,29 @@
+{
+  "namespace" : "Demo",
+
+  "classes" : {
+    "Point" : {
+      "x" : "int",
+      "y" : "string"
+    },
+    "Rectangle" : {
+      "from" : "Point", 
+      "to" : "Point"
+    }
+  },
+
+  "service" : [
+    {
+      "name" : "sayHello",
+      "params" : {
+        "name" : "string", 
+        "age" : "int"
+      }
+    }, 
+    {
+      "name" : "getRandomNumber",
+      "params" : null,
+      "return" : "int"
+    }
+  ]
+}
