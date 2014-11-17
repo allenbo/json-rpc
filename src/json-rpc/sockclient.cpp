@@ -2,7 +2,7 @@
 #include "json-rpc/buffer.hpp"
 #include "json-rpc/errors.hpp"
 
-#include "json-rpc/sockclient.hpp"
+#include "json-rpc/client/sockclient.hpp"
 
 SockClient::SockClient(std::string host, std::string port)
     :_sock(UNINIT_SOCKET), _server_info(nullptr) {
