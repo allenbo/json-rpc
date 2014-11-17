@@ -1,34 +1,20 @@
-#include "json-rpc/sockserver.hpp"
+#include "json-rpc/server/sockserver.hpp"
 #include "json-rpc/buffer.hpp"
 
 #include "json-rpc/proto.hpp"
 
-static const int MAX_QUEUE_SIZE = 128;
 static const int POOL_SIZE = 16;
 
 SockServer::SockServer(std::string port)
-    : ServerConnector(), _host_info(nullptr), _sock(UNINIT_SOCKET) ,
-      _stop(false) , _thread(this), _pool_size(POOL_SIZE) {
+    : ServerConnector(port),
+      _pool_size(POOL_SIZE), _stop(false),  _thread(this) {
 #ifdef JSONRPC_DEBUG
   CLASS_INIT_LOGGER("SockServer", L_DEBUG)
 #endif
-
-  struct addrinfo hints;
-  memset(&hints, 0, sizeof(struct addrinfo));
-  hints.ai_family = AF_INET;
-  hints.ai_socktype = SOCK_STREAM;
-  hints.ai_flags = AI_PASSIVE;
-
-  int r = getaddrinfo(nullptr, port.c_str(), &hints, &_host_info);
-  if (r != 0) {
-    CLOG_DEBUG("getaddrinfo function error!\n");
-    throw HostFailException("Function getaddrinfo error", "localhost", port);
-  }
   _connections.clear();
 }
 
 SockServer::~SockServer() {
-  freeaddrinfo(_host_info);
   _close_connections(); 
   _stop = true;
 
@@ -47,32 +33,8 @@ void SockServer::_close_connections() {
   _mutex.unlock();
 }
 
-int SockServer::listen() {
-  if (_sock != UNINIT_SOCKET)  {
-    return -1;
-  }
-
-  _sock = ::socket(_host_info->ai_family, _host_info->ai_socktype, _host_info->ai_protocol);
-  if (_sock == UNINIT_SOCKET) {
-    CLOG_DEBUG("socket function error!\n");
-    throw SocketFailException("socket");
-  }
-
-  int optval = 1;
-  setsockopt(_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval);
-
-  int r = bind(_sock, _host_info->ai_addr, _host_info->ai_addrlen);
-  if (r != 0) {
-    CLOG_DEBUG("bind function error!\n");
-    throw SocketFailException("bind");
-  }
-
-  r = ::listen(_sock, MAX_QUEUE_SIZE);
-  if (r != 0) {
-    CLOG_DEBUG("listen function error!\n");
-    throw SocketFailException("listen");
-  }
-
+int SockServer::start() {
+  _listen();
   _thread.start();
   return 0;
 }
@@ -193,50 +155,15 @@ void Connection::_send(std::string msg) {
 
 Request Connection::_build_request(size_t& handler_id) {
   std::string msg = _recv();
-  CLOG_DEBUG("build request for client_sock %d, %s\n", _client_sock, msg.c_str());
-
-  PError err;
-  JValue* req_json = loads(msg, err);
-
-  if (req_json == nullptr || !req_json->isObject()) {
-    CLOG_DEBUG("Json parsing error\n");
-    throw ServerJsonNotParsedException();
-  }
-
-  JValue* item_json = req_json->get(METHOD);
-  if (item_json == nullptr || !item_json->isInteger()) {
-    CLOG_DEBUG("Can't get method\n");
-    throw ServerJsonNotParsedException();
-  }
-  handler_id = item_json->getInteger();
-
-
-  item_json = req_json->get(PARAM);
-  if (item_json == nullptr || !item_json->isArray()) {
-    CLOG_DEBUG("Can't get parameters\n");
-    throw ServerJsonNotParsedException();
-  }
-
-  Request request(item_json);
-  return request;
+  return Proto::build_request(msg, handler_id);
 }
 
 void Connection::_send_response(Response& resp) {
-  JObject* obj = new JObject();
-  obj->put(RESULT, resp.get_serializer().getContent());
-
-  std::string jsonText = dumps(obj);
-  CLOG_DEBUG("send_response %s\n", jsonText.c_str());
-  
+  std::string jsonText = Proto::build_response(resp);
   _send(jsonText); 
 }
 
 void Connection::_send_error(int code) {
-  JObject* obj = new JObject();
-  obj->put(ERROR, code);
-
-  std::string jsonText = dumps(obj);
-  CLOG_DEBUG("send_response %s\n", jsonText.c_str());
-  
+  std::string jsonText = Proto::build_error(code);
   _send(jsonText); 
 }

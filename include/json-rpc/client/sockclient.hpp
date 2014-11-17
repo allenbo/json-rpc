@@ -1,7 +1,7 @@
 #ifndef __JSONRPC_SOCKCLIENT_HPP__
 #define __JSONRPC_SOCKCLIENT_HPP__
 
-#include "json-rpc/cconn.hpp"
+#include "json-rpc/client/cconn.hpp"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>

@@ -2,18 +2,11 @@
 #define __JSONRPC_SOCKSERVER_HPP__
 
 #include "json-rpc/util.hpp"
-#include "json-rpc/sconn.hpp"
-#include "json-rpc/request.hpp"
-#include "json-rpc/asio.hpp"
+#include "json-rpc/server/sconn.hpp"
+#include "json-rpc/server/request.hpp"
+#include "json-rpc/server/asio.hpp"
 #include "json-rpc/errors.hpp"
 #include "common/all.hpp"
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <unistd.h>
 
 #include <list>
 
@@ -25,7 +18,7 @@ class SockServer : public ServerConnector {
   public:
     SockServer(std::string port);
 
-    int listen();
+    int start();
     int stop();
 
     void loop();
@@ -36,8 +29,6 @@ class SockServer : public ServerConnector {
 
     void _close_connections();
 
-    struct addrinfo* _host_info;
-    int _sock;
     int _pool_size;
     bool _stop;
 
@@ -87,9 +78,9 @@ class ConnectionThread : public Thread {
 class Connection {
   friend class ConnectionThread;
   public:
-    Connection(SockServer* server, int sock)
-        :_pserver(server), _client_sock(sock),
-         _connected(true), _thread(server, this) {
+    Connection(SockServer* pserver, int sock)
+        :_pserver(pserver), _client_sock(sock),
+         _connected(true), _thread(pserver, this) {
 #ifdef JSONRPC_DEBUG
       CLASS_INIT_LOGGER("Connection", L_DEBUG);
 #endif

@@ -1,8 +1,9 @@
 #ifndef __JSONPRC_SERVICE_HPP__
 #define __JSONPRC_SERVICE_HPP__
 
-#include "json-rpc/asio.hpp"
-#include "json-rpc/sconn.hpp"
+#include "json-rpc/server/asio.hpp"
+#include "json-rpc/server/sconn.hpp"
+#include <functional>
 #include "json-rpc/errors.hpp"
 #include "jconer/json.hpp"
 #include <functional>
@@ -17,7 +18,7 @@ class AbstractService : public ASIO {
     }
 
     int listen() {
-      _s.listen();
+      _s.start();
       return 0;
     }
 

@@ -16,8 +16,11 @@ class Response {
 
 class Request {
   public:
-    Request(JValue*);
+    Request(JValue*, JValue*);
     Request(Request&& other);
+    ~Request() {
+      if (_msg_json) delete _msg_json;
+    }
 
     InSerializer& get_serializer() { return _sin; }
     Response& get_response() { return _resp;}
@@ -25,6 +28,7 @@ class Request {
   private:
     InSerializer _sin;
     Response _resp;
+    JValue* _msg_json;
 };
 
 #endif

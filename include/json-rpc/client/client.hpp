@@ -1,7 +1,7 @@
 #ifndef __JSONRPC_CLIENT_HPP__
 #define __JSONRPC_CLIENT_HPP__
 
-#include "json-rpc/cconn.hpp"
+#include "json-rpc/client/cconn.hpp"
 #include "json-rpc/proto.hpp"
 #include "json-rpc/errors.hpp"
 #include "jconer/json.hpp"

@@ -2,7 +2,7 @@
 #define __JSONPRC_ASIO_HPP__
 
 #include <cstdlib>
-#include "json-rpc/request.hpp"
+#include "json-rpc/server/request.hpp"
 
 class ASIO {
   public:

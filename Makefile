@@ -15,8 +15,8 @@ CPP := g++
 CC := gcc
 AR := ar
 
-CFLAG := -O2 -Wall -std=c++11 -DJSONRPC_DEBUG
-LFLAG := -O2 -flto -lpthread -L$(LIB_DIR) $(LIB)
+CFLAG := -g -Wall -std=c++11
+LFLAG := -g -flto -lpthread -L$(LIB_DIR) $(LIB)
 ARFLAG := -rcs
 
 SRC := $(wildcard $(JSONRPC_SRC_DIR)/*.cpp)

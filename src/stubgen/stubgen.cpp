@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
   JValue* service = spec->get("service");
 
   if (spacename == NULL || ! spacename->isString() ||
-      classes == NULL || ! classes->isObject() ||
+      (classes != NULL && ! classes->isObject()) ||
       service == NULL || ! service->isArray() ) {
     std::cerr << "Grammar error" <<  std::endl
               << "please check out the grammar at file [stubgrammar]"
@@ -51,9 +51,12 @@ int main(int argc, char** argv) {
   std::string service_name = spacename->getString();
 
   std::vector<ClassDef> classdefs;
-  std::vector<std::string> classnames = classes->getKeys();
-  for(int i = 0; i < classnames.size(); i ++ ) {
-    classdefs.push_back(ClassDef::from_json(classnames[i], classes->get(classnames[i]) ) );
+  classdefs.clear();
+  if (classes) {
+    std::vector<std::string> classnames = classes->getKeys();
+    for(int i = 0; i < classnames.size(); i ++ ) {
+      classdefs.push_back(ClassDef::from_json(classnames[i], classes->get(classnames[i]) ) );
+    }
   }
   
   ServiceDef servicedef = ServiceDef::from_json(service_name, service);
