@@ -20,6 +20,14 @@ class ServerCloseSocketException: public ServerException {
     }
 };
 
+class ServerBadMessageException: public ServerException {
+  public:
+    ServerBadMessageException() : ServerException(BAD_MESSAGE) {}
+    const char* what() const throw() {
+      return "Bad message coming";
+    }
+};
+
 class ServerMethodNotFoundException: public ServerException {
   public:
     ServerMethodNotFoundException(): ServerException(METHOD_NOT_FOUND) {}

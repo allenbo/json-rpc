@@ -93,6 +93,7 @@ class PollServer : public ServerConnector {
 class Channel {
   public:
     enum State {
+      BROKEN = -2,
       CLOSED = -1,
       READ_PENDING = 0,
       READ_READY = 1,
@@ -119,8 +120,8 @@ class Channel {
   private:
     int _sock;
 
-    HRDONBuffer *_read_buffer;
-    WRONBuffer *_write_buffer;
+    SizedRDONBuffer *_read_buffer;
+    SizedWRONBuffer *_write_buffer;
 
     Mutex _send_mutex;
     Mutex _read_mutex;

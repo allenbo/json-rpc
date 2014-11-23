@@ -109,17 +109,29 @@ std::string Connection::_recv() {
   const int MAX_BUFF_SIZE = 1024;
   char chunk[MAX_BUFF_SIZE];
 
-  while( true) {
+  int size = 0;
+  int curr_size = 0;
+  int len = read(_client_sock, (void*)&size, sizeof(int));
+
+  if (len == 0) {
+    CLOG_DEBUG("connection closed\n");
+    throw ServerCloseSocketException();
+  }
+
+  if (len != sizeof(int) || size <= 0) {
+    CLOG_INFO("Error when read size of incoming message\n");
+    return "";
+  }
+
+  CLOG_DEBUG("The size of the message is %d\n", size);
+
+  while(true) {
     int chunk_len = read(_client_sock, chunk, MAX_BUFF_SIZE);
 
-    if (chunk_len == 0) {
-      CLOG_DEBUG("connection closed\n");
-      throw ServerCloseSocketException();
-    }
-
     wr_buffer.write(chunk, chunk_len);
+    curr_size += chunk_len;
 
-    if (chunk_len != MAX_BUFF_SIZE) {
+    if (curr_size == size) {
       break;
     }
   }
@@ -133,7 +145,8 @@ void Connection::_send(std::string msg) {
   const int MAX_CHUNK_SIZE = 1024;
   char chunk[MAX_CHUNK_SIZE];
 
-  RDONBuffer rd_buffer(msg.c_str(), msg.size());
+  SizedRDONBuffer rd_buffer(msg.c_str(), msg.size());
+  CLOG_DEBUG("Send out message with %d bytes\n", msg.size());
 
   while( true ) {
     int len = rd_buffer.read(chunk, MAX_CHUNK_SIZE);
@@ -155,6 +168,9 @@ void Connection::_send(std::string msg) {
 
 Request Connection::_build_request(size_t& handler_id) {
   std::string msg = _recv();
+  if (msg == "") {
+    throw ServerBadMessageException();
+  }
   return Proto::build_request(msg, handler_id);
 }
 

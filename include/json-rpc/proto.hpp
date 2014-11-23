@@ -20,6 +20,8 @@ static const int SOCKET_CLOSED = 1;
 static const int METHOD_NOT_FOUND = 2;
 static const int JSON_NOT_PARSED = 3;
 static const int PARAM_MISMATCH = 4;
+static const int BAD_MESSAGE = 5;
+static const int BAD_RESPONSE = 6;
 
 //error in connection
 static const int READ_FAIL = 5;

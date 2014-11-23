@@ -7,6 +7,7 @@
 #include "jconer/json.hpp"
 #include <cstdlib>
 #include <cstring>
+#include <stdexcept>
 
 #include <unistd.h>
 
@@ -51,6 +52,9 @@ void AbstractClient::call(size_t method_hash, OutSerializer& sout) {
   std::string msg = _build_request(method_hash, sout);
   CLOG_DEBUG("build request %s\n", msg.c_str());
 
+  int tried = 0;
+  static const int MAX_TRY = 8;
+
   while (true) {
     try {
       std::string rst = "";
@@ -59,9 +63,17 @@ void AbstractClient::call(size_t method_hash, OutSerializer& sout) {
 
       _parse_response(rst);
       break;
-    } catch (ServerCloseSocketException & e) {
+    } catch (ServerException & e) {
       _client.reconnect();  
+    } catch (ReadFailException & e ) {
+      tried ++;
+    } catch (WriteFailException & e) {
+      tried ++;
     }
+  }
+
+  if (tried > MAX_TRY) {
+    throw std::runtime_error("PRC call failed");
   }
 }
 
@@ -128,6 +140,9 @@ JValue* AbstractClient::_parse_response_internal(std::string response) {
         CLOG_DEBUG("Parameters don't match with the method\n");
         throw ServerParamMismatchException();
         break;
+      case BAD_MESSAGE:
+        CLOG_DEBUG("Message sent out was broken\n");
+        throw ServerBadMessageException();
       default:
         CLOG_FATAL("Unknown error code %d\n", errcode);
     }
