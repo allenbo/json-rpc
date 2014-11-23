@@ -63,13 +63,15 @@ void SockClient::_send(const std::string& msg) {
   const int MAX_CHUNK_SIZE = 1024;
   char chunk[MAX_CHUNK_SIZE];
 
-  RDONBuffer rd_buffer(msg.c_str(), msg.size());
+  SizedRDONBuffer rd_buffer(msg.c_str(), msg.size());
+  CLOG_DEBUG("Send out message with %d bytes\n", msg.size());
 
   while( true ) {
     int len = rd_buffer.read(chunk, MAX_CHUNK_SIZE);
     if (len != 0) {
       if (write(_sock, chunk, len) != len) {
-        CLOG_FATAL("write function error\n");
+        CLOG_INFO("write function error\n");
+        throw WriteFailException();
       }
     } else {
       break;
@@ -81,17 +83,30 @@ void SockClient::_recv(std::string& result) {
   const int MAX_CHUNK_SIZE = 1024;
   char chunk[MAX_CHUNK_SIZE];
 
+  int size = 0;
+  int curr_size = 0;
+  int len = read(_sock, &size, sizeof(int));
+
+  if (len != sizeof(int) || size <= 0){
+    CLOG_INFO("Read %d bytes of size of message\n", len);
+    throw ReadFailException();
+  }
+
+  CLOG_DEBUG("The size of the message is %d\n", size);
+
   WRONBuffer wr_buffer;
 
   while( true ) {
     int chunk_len = read(_sock, chunk, MAX_CHUNK_SIZE);
     if (chunk_len < 0) {
-      CLOG_FATAL("read function error %d\n", chunk_len);
+      CLOG_INFO("read function error %d\n", chunk_len);
+      throw ReadFailException();
     }
 
     wr_buffer.write(chunk, chunk_len);
 
-    if(chunk_len != MAX_CHUNK_SIZE)  {
+    curr_size += chunk_len;
+    if(curr_size == size)  {
       result.assign(wr_buffer.c_str());
       break;
     }

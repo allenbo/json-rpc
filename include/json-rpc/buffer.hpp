@@ -56,6 +56,24 @@ class HRDONBuffer : public RDONBuffer{
     }
 };
 
+class SizedRDONBuffer : public RDONBuffer {
+  public:
+    SizedRDONBuffer(const char* str, int size)
+        : RDONBuffer(str, size) {
+      const char* temp = _read_only_str;
+      _read_only_str = new char[sizeof(int) + _size];
+      *(int*)_read_only_str = size;
+      memcpy((void*)(_read_only_str + sizeof(int)), (void*)temp, _size);
+      _size = _size + sizeof(int);
+    }
+
+    ~SizedRDONBuffer() {
+      delete []_read_only_str;
+    }
+
+    inline bool ready() { return _pos == _size;}
+};
+
 class WRONBuffer {
   public:
     WRONBuffer() {
@@ -66,7 +84,7 @@ class WRONBuffer {
 
     WRONBuffer(size_t size){
       assert(size > 0);
-      size_t real_size = std::max(size, MIN_BUFFER_SIZE);
+      size_t real_size = size;
       _write_only_str = new char[real_size];
       _size = real_size;
       _pos = 0;
@@ -99,11 +117,31 @@ class WRONBuffer {
       _pos = 0;
       memset((void*)_write_only_str, 0, _size);
     }
-  private:
+  protected:
     char* _write_only_str;
     size_t _size;
     size_t _pos;
     
+};
+
+class SizedWRONBuffer : public WRONBuffer {
+  public:
+    SizedWRONBuffer(size_t size)
+        : WRONBuffer(size) {
+    }
+
+    size_t write(void* ptr, size_t size) {
+      if (_pos == _size) return 0;
+      if (_pos + size > _size) {
+        size = _size - _pos;
+      }
+
+      memcpy((void*)(_write_only_str + _pos), ptr, size);
+      _pos += size;
+      return size;
+    }
+
+    inline bool ready() { return _pos == _size;}
 };
 
 #endif
