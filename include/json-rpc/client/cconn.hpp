@@ -3,6 +3,9 @@
 
 #include "jconer/json.hpp"
 
+/**
+ * Base client connector for sending and receiving data
+ */
 class ClientConnector {
   public:
     ClientConnector() {}

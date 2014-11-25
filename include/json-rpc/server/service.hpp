@@ -10,6 +10,13 @@
 
 using namespace JCONER;
 
+/**
+ * Abstract service that will be inherited by any other concrete service.
+ * The way it works is this service will need a server connector to handle
+ * the connection and request. After a request has been built, the server
+ * connector will trigger the callback function in this service. All
+ * callback functions have to be register when service initializing itself.
+ **/
 template<class S>
 class AbstractService : public ASIO {
   public:
@@ -35,16 +42,19 @@ class AbstractService : public ASIO {
     }
 
     int reg(size_t handler_id, std::function<void(S&, Request*)> handler) {
+      int rst = 0;
       if (_handlers.count(handler_id) != 0) {
         CLOG_INFO("handld has been registered %d\n", handler_id);
+        rst = 1;
       }
       _handlers[handler_id] = handler;
-      return 0;
+      return rst;
     }
 
 
     int on_request(size_t handler_id, Request* request) {
       if (_handlers.count(handler_id) == 0) {
+        // No method found
         return 0;
       } else {
         try {

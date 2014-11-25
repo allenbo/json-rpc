@@ -29,11 +29,17 @@ class SockServer : public ServerConnector {
 
     void _close_connections();
 
+    /* The number of total connections this server could maintain.
+     * When the connections pool is full and a new connection bumps in,
+     * this server will close oldest connection
+     */
     int _pool_size;
     bool _stop;
 
     Mutex _mutex;
 
+    /* An auxiliary thread running server loop function
+     */
     class ServerLoopThread : public Thread {
       public:
         ServerLoopThread(SockServer* pserver) :Thread(), _pserver(pserver) {
@@ -50,13 +56,16 @@ class SockServer : public ServerConnector {
     friend class ConnectionThread;
     ServerLoopThread _thread;
 
+    /* Connection pool. The max size of this list is detemined by _pool_size
+     */
     std::list<Connection*> _connections;
 
   CLASS_MAKE_LOGGER
 };
 
-
-
+/**
+ * Auxiliary thread for each connection to deal with request
+ **/
 class ConnectionThread : public Thread {
   public:
     ConnectionThread(SockServer* server, Connection* pconn)
@@ -87,10 +96,13 @@ class Connection {
     }
 
     void start() {
-      CLOG_DEBUG("Thread start\n");
       _thread.start();
     } 
 
+    /* Shutting down connection needs some special protocol.
+     * When there is new connection bumping up but the connection pool
+     * is full, the oldest connecton needs to be shut down.
+     */
     void shutdown() {
       _mutex.lock();
       _connected = false;

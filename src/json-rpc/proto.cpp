@@ -1,6 +1,9 @@
 #include "json-rpc/proto.hpp"
 #include "json-rpc/errors.hpp"
 
+/**
+ * Parse message to return a request and handler id
+ */
 Request Proto::build_request(std::string msg, size_t& handler_id) {
   PError err;
   JValue* req_json = loads(msg, err);
@@ -25,6 +28,9 @@ Request Proto::build_request(std::string msg, size_t& handler_id) {
   return request;
 }
 
+/**
+ * Build a response text based on result from server method
+ */
 std::string Proto::build_response(Response& resp) {
   JObject* obj = new JObject();
   obj->put(RESULT, resp.get_serializer().getContent());
@@ -34,6 +40,9 @@ std::string Proto::build_response(Response& resp) {
   return jsonText; 
 }
 
+/**
+ * Build an error message given error code
+ */
 std::string Proto::build_error(int code) {
   JObject* obj = new JObject();
   obj->put(ERROR, code);

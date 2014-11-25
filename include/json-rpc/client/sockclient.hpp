@@ -9,6 +9,9 @@
 #include <arpa/inet.h>
 #include <unistd.h>
  
+/**
+ * A tpc socket client connector
+ */
 class SockClient : public ClientConnector {
   public:
     SockClient(std::string host, std::string port);

@@ -4,6 +4,9 @@
 #include "jconer/json.hpp"
 using namespace JCONER;
 
+/**
+ * Response contains a out serializer that holds the message to client
+ **/
 class Response {
   public:
     Response() {};
@@ -14,6 +17,9 @@ class Response {
     OutSerializer _sout;
 };
 
+/**
+ * Request contains a in serializer and a response
+ **/
 class Request {
   public:
     Request(JValue*, JValue*);

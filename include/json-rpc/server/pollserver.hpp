@@ -93,19 +93,19 @@ class PollServer : public ServerConnector {
 class Channel {
   public:
     enum State {
-      BROKEN = -2,
-      CLOSED = -1,
-      READ_PENDING = 0,
-      READ_READY = 1,
-      WRITE_PENDING = 3,
-      WRITE_READY = 4,
+      BROKEN = -2,        // when message is broken
+      CLOSED = -1,        // when client closes socket
+      READ_PENDING = 0,   // when channel is readding
+      READ_READY = 1,     // when channel finishes reading
+      WRITE_PENDING = 3,  // when  channel is writing
+      WRITE_READY = 4,    // when chanell finishes writing
     };
 
     Channel(int sock, PollServer* server);
     virtual ~Channel();
 
-    State read(); 
-    State write();
+    State read();   // read callback
+    State write();  // write callback
 
     void send(std::string msg);
     void send(const char* msg, size_t len);
@@ -114,8 +114,8 @@ class Channel {
 
     bool is_alive();
 
-    std::string get_msg();
-    void clear_msg();
+    std::string get_msg(); // result the message channel got from client
+    void clear_msg(); // clear write only buffer and send a read notification
 
   private:
     int _sock;
@@ -127,6 +127,10 @@ class Channel {
     Mutex _read_mutex;
     Condition _read_cond;
     bool _alive;
+
+    /* When channel finishes reading one message, it has to handle the message.
+     * Now set busy to be true and blocking any other read callback
+     */
     bool _busy;
 
     CLASS_MAKE_LOGGER

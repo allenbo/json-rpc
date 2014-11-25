@@ -11,6 +11,10 @@ static const size_t MB = KB * KB;
 
 static const size_t MIN_BUFFER_SIZE = KB;
 
+/**
+ * A read only buffer that takes a char* and it's size as parameters. You can
+ * keep reading chunks of data from this buffer
+ **/
 class RDONBuffer {
   public:
     RDONBuffer(const char* str, int size)
@@ -42,6 +46,10 @@ class RDONBuffer {
     size_t _pos;
 };
 
+/**
+ * A heavy read only buffer. The only differece from RDONBuffer is this buffer
+ * copy string into an array in it.
+ **/
 class HRDONBuffer : public RDONBuffer{
   public:
     HRDONBuffer(const char* str, int size)
@@ -56,6 +64,10 @@ class HRDONBuffer : public RDONBuffer{
     }
 };
 
+
+/**
+ * A buffer with it's string's length embedded at the first 4 bytes
+ **/
 class SizedRDONBuffer : public RDONBuffer {
   public:
     SizedRDONBuffer(const char* str, int size)
@@ -74,6 +86,11 @@ class SizedRDONBuffer : public RDONBuffer {
     inline bool ready() { return _pos == _size;}
 };
 
+
+/**
+ * A write only buffer. You can write chunks of data into this buffer and
+ * get them as a contiguous string
+ **/
 class WRONBuffer {
   public:
     WRONBuffer() {
@@ -124,6 +141,9 @@ class WRONBuffer {
     
 };
 
+/**
+ * A write only buffer that restricts how many bytes you can write into it.
+ **/
 class SizedWRONBuffer : public WRONBuffer {
   public:
     SizedWRONBuffer(size_t size)

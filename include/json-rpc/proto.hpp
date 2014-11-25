@@ -30,15 +30,13 @@ static const int BIND_FAIL = 7;
 static const int ACCEPT_FAIL = 8;
 static const int SOCKET_FAIL = 9;
 
+// Handle with protocol
 class Proto {
   public:
     static Request build_request(std::string msg, size_t& handler_id);
-
     static std::string build_response(Response& resp);
-
     static std::string build_error(int code);
-
-  private:
+    //TODO: Move client protocol code here
 };
 
 #endif

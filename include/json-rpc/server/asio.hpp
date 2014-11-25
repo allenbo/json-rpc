@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include "json-rpc/server/request.hpp"
 
+// base class for abstract service
 class ASIO {
   public:
     virtual int on_request(size_t handler_id, Request*) = 0;

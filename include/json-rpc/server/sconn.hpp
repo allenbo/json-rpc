@@ -13,6 +13,10 @@
 
 static const int MAX_QUEUE_SIZE = 100;
 
+/**
+ * A basic server connector that will be inherited by other solid server
+ * connector like socket connector or poll connector
+ **/
 class ServerConnector {
   public:
     ServerConnector(std::string port)

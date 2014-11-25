@@ -23,6 +23,8 @@ SockServer::~SockServer() {
   }
 }
 
+/* Close all connections
+ */
 void SockServer::_close_connections() {
   _mutex.lock();
   auto it = _connections.begin();

@@ -13,6 +13,11 @@
 
 using namespace JCONER;
 
+/**
+ * Abstract client that will be inherited by generated client. The generated
+ * client has some wrappers that invoke "call" function of this class to send
+ * parameters to and receive result from server.
+ */
 class AbstractClient {
   public:
     AbstractClient(ClientConnector& client) : _client(client) {
@@ -32,8 +37,13 @@ class AbstractClient {
 
 
   protected:
+    /* Call function w/o return value
+     */
     void call(size_t method_hash, OutSerializer& sout);
 
+    /* Call function w/ return value
+     * TODO: should find a way to merge there two functions
+     */
     template<class R>
     void call(size_t method_hash, OutSerializer& sout, R* r);
 
@@ -82,6 +92,9 @@ void AbstractClient::call (size_t method_hash, OutSerializer& sout, R* r) {
   std::string msg = _build_request(method_hash, sout);
   CLOG_DEBUG("build request %s\n", msg.c_str());
 
+  int tried = 0;
+  static const int MAX_TRY = 8;
+
   while (true) {
     try {
       std::string rst;
@@ -92,6 +105,10 @@ void AbstractClient::call (size_t method_hash, OutSerializer& sout, R* r) {
       break;
     } catch(ServerCloseSocketException& e) {
       _client.reconnect();  
+    } catch (ReadFailException & e ) {
+      tried ++;
+    } catch (WriteFailException & e) {
+      tried ++;
     }
   }
 }
