@@ -59,8 +59,6 @@ class SockServer : public ServerConnector {
     /* Connection pool. The max size of this list is detemined by _pool_size
      */
     std::list<Connection*> _connections;
-
-  CLASS_MAKE_LOGGER
 };
 
 /**
@@ -70,9 +68,6 @@ class ConnectionThread : public Thread {
   public:
     ConnectionThread(SockServer* server, Connection* pconn)
         : _pserver(server), _pconn(pconn) {
-#ifdef JSONRPC_DEBUG
-      CLASS_INIT_LOGGER("ConnectionThread", L_DEBUG);
-#endif
     }
 
     void run();
@@ -80,8 +75,6 @@ class ConnectionThread : public Thread {
   private:
     SockServer* _pserver;
     Connection* _pconn;
-
-  CLASS_MAKE_LOGGER
 };
 
 class Connection {
@@ -90,9 +83,6 @@ class Connection {
     Connection(SockServer* pserver, int sock)
         :_pserver(pserver), _client_sock(sock),
          _connected(true), _thread(pserver, this) {
-#ifdef JSONRPC_DEBUG
-      CLASS_INIT_LOGGER("Connection", L_DEBUG);
-#endif
     }
 
     void start() {
@@ -112,7 +102,7 @@ class Connection {
       if (_thread.is_active()){
         _thread.join();
       }
-      CLOG_DEBUG("thread joined\n");
+      LOG(DEBUG) << "thread joined" << std::endl;
       close(_client_sock);
     }
 
@@ -130,13 +120,8 @@ class Connection {
     std::string _recv();
     void _send(std::string msg);
 
-    Request _build_request(size_t& handler_id);
-
     void _send_response(Response& resp);
     void _send_error(int code);
-    
-
-  CLASS_MAKE_LOGGER
 };
 
 #endif

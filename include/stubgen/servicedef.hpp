@@ -57,7 +57,7 @@ class ServiceDef {
 
         void add_param(std::string name, std::string type) {
           if (_params.count(name) != 0) {
-            CLOG_INFO("Refine param %s\n", name.c_str());
+            LOG(INFO) << "Refine param " << name.c_str() << std::endl;
           }
           _params[name] = type;
         }
@@ -95,8 +95,6 @@ class ServiceDef {
         std::string _rettype;
         std::string _cname; // class name
         std::map<std::string, std::string> _params;
-
-      CLASS_MAKE_LOGGER
     };
 
 

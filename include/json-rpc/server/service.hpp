@@ -44,7 +44,7 @@ class AbstractService : public ASIO {
     int reg(size_t handler_id, std::function<void(S&, Request*)> handler) {
       int rst = 0;
       if (_handlers.count(handler_id) != 0) {
-        CLOG_INFO("handld has been registered %d\n", handler_id);
+        LOG(INFO) << "handld has been registered " << handler_id << std::endl;
         rst = 1;
       }
       _handlers[handler_id] = handler;
@@ -52,7 +52,8 @@ class AbstractService : public ASIO {
     }
 
 
-    int on_request(size_t handler_id, Request* request) {
+    int on_request(Request* request) {
+      size_t handler_id = request->handlerid();
       if (_handlers.count(handler_id) == 0) {
         // No method found
         return 0;
@@ -69,8 +70,6 @@ class AbstractService : public ASIO {
   private:
     ServerConnector& _s;
     std::map<size_t, std::function<void(S&, Request*)> > _handlers;
-  
-    CLASS_MAKE_LOGGER
 };
 
 #endif

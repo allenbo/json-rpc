@@ -7,9 +7,6 @@ static const int MAX_BUFF_SIZE = 1024;
 PollManager::PollManager(): _highest(0) {
   _watched_read_fds.clear();
   _watched_write_fds.clear();
-#ifdef JSONRPC_DEBUG
-  CLASS_INIT_LOGGER("PollManager", L_DEBUG)
-#endif
 }
 
 PollManager::~PollManager() {
@@ -28,7 +25,7 @@ void PollManager::watch(int fd, FD_MODE mod) {
     _watched_write_fds.insert(fd);
   }
 
-  CLOG_DEBUG("watch fd %d as %d\n", fd, mod);
+  LOG(DEBUG) << VarString::format("watch fd %d as %d", fd, mod) << std::endl;
 
   if (fd > _highest) {
     _highest = fd;
@@ -45,7 +42,7 @@ void PollManager::unwatch(int fd, FD_MODE mod) {
     _watched_write_fds.erase(fd);
   }
 
-  CLOG_DEBUG("unwatch fd %d as %d\n", fd, mod);
+  LOG(DEBUG) << VarString::format("unwatch fd %d as %d", fd, mod) << std::endl;
 
   int new_highest = 0;
   auto it = _watched_read_fds.begin();
@@ -62,13 +59,12 @@ void PollManager::unwatch(int fd, FD_MODE mod) {
     }
   }
 
-  CLOG_DEBUG("new highest fd is %d\n", new_highest);
+  LOG(DEBUG) << "new highest fd is " << new_highest << std::endl;
 
   _highest = new_highest;
 }
 
 bool PollManager::poll(std::vector<int>& reads, std::vector<int>& writes) {
-  CLOG_DEBUG("seleting\n");
   while (true) {
     fd_set read_set;
     fd_set write_set;
@@ -110,15 +106,11 @@ Channel::Channel(int sock, PollServer* server)
      _send_mutex(), _read_mutex(), _read_cond(&_read_mutex),
      _alive(true), _busy(false) {
   nonblock_fd(_sock);
-#ifdef JSONRPC_DEBUG
-  CLASS_INIT_LOGGER("Channel", L_DEBUG)
-#endif
 }
 
 Channel::~Channel() {
   if (is_alive()) {
     close();
-    _alive = false;
   }
 
   if (_read_buffer) delete _read_buffer;
@@ -126,10 +118,8 @@ Channel::~Channel() {
 }
 
 Channel::State Channel::read() {
-  CLOG_DEBUG("enter read function in channel\n");
-
   while (_busy) {
-    CLOG_DEBUG("Busy, waiting for operatio to finish\n");
+    LOG(DEBUG) << "Busy, waiting for operatio to finish" << std::endl;
     _read_cond.wait();
   }
 
@@ -142,20 +132,18 @@ Channel::State Channel::read() {
     }
 
     if (len != sizeof(int) || size <= 0) {
-      CLOG_INFO("Error when read size of incoming message\n");
+      LOG(INFO) << "Error when read size of incoming message" << std::endl;
       _busy = true;
       return State::BROKEN;
     }
 
-    CLOG_DEBUG("The size of message is %d\n", size);
+    LOG(DEBUG) << "The size of message is " << size << std::endl;
     _write_buffer = new SizedWRONBuffer(size);
   }
 
   char chunk[MAX_BUFF_SIZE];
   int len;
   len = ::read(_sock, chunk, MAX_BUFF_SIZE);
-  CLOG_DEBUG("read %d bytes\n", len);
-
 
   _write_buffer->write(chunk, len);
 
@@ -163,13 +151,12 @@ Channel::State Channel::read() {
     return Channel::State::READ_PENDING;
   } else {
     _busy = true;
-    CLOG_DEBUG("Set to busy\n");
+    LOG(DEBUG) << "Set to busy" << std::endl;
     return Channel::State::READ_READY;
   }
 }
 
 Channel::State Channel::write() {
-  CLOG_DEBUG("enter write function in channel\n");
   char chunk[MAX_BUFF_SIZE];
   int len;
 
@@ -177,7 +164,6 @@ Channel::State Channel::write() {
   len = _read_buffer->read(chunk, MAX_BUFF_SIZE);
   chunk[len] = '\0';
 
-  CLOG_DEBUG("write %s\n", chunk);
   ::write(_sock, chunk, len);
 
   if (_read_buffer->ready()) {
@@ -194,7 +180,12 @@ void Channel::send(std::string msg) {
 
 void Channel::send(const char* msg, size_t len) {
   _send_mutex.lock();
-  CLOG_DEBUG("get send lock\n");
+  LOG(DEBUG) << "get send lock" << std::endl;
+  if (_alive == false) {
+    _send_mutex.unlock();
+    return;
+  }
+
   if (_read_buffer != nullptr) {
     delete _read_buffer;
   }
@@ -203,11 +194,16 @@ void Channel::send(const char* msg, size_t len) {
   State state = write();
   if (state != State::WRITE_READY) {
     PollManager::get_instance().watch(_sock, FD_MODE::WRITE);
+  } else {
+    _send_mutex.unlock();
   }
 }
 
 void Channel::close() {
+  ScopeLock _(&_send_mutex);
+  shutdown(_sock, SHUT_RDWR);
   ::close(_sock);
+  _alive = false;
 }
 
 bool Channel::is_alive() {
@@ -234,10 +230,6 @@ void Channel::clear_msg() {
 
 PollServer::PollServer(std::string port)
     :ServerConnector(port), _stop(false), _thread(this) {
-#ifdef JSONRPC_DEBUG
-  CLASS_INIT_LOGGER("PollServer", L_DEBUG)
-#endif
-
 }
 
 int PollServer::start() {
@@ -266,33 +258,33 @@ void PollServer::loop() {
         // Check if the channel is alive or not
         if (_channels.count(*it) == 0) {
           // Channel deleted
-          CLOG_DEBUG("Channel related to fd %d has been erased\n", *it);
+          LOG(DEBUG) << "Channel related to fd " << *it << " has been erased" << std::endl;
           continue;
         }
         Channel::State state = _channels[*it]->read();
 
         if (state == Channel::State::READ_READY) {
           // Finish read entire message
-          CLOG_DEBUG("Channel finish reading message\n");
+          LOG(DEBUG) << "Channel finish reading message" << std::endl;
           _add_job_wrapper(_channels[*it]);
         } else if (state == Channel::State::CLOSED || state == Channel::State::BROKEN) {
           // Remote client close the connection, so close channel
-          CLOG_DEBUG("Remote client closed the connection\n");
+          LOG(DEBUG) << "Remote client closed the connection" << std::endl;
+          _channels[*it]->close();
           PollManager::get_instance().unwatch(*it, FD_MODE::READ);
           PollManager::get_instance().unwatch(*it, FD_MODE::WRITE);
-          _channels[*it]->close();
           delete _channels[*it];
           _channels.erase(*it);
-          CLOG_DEBUG("%d fd, connection close\n", *it);
+          LOG(DEBUG) << *it << " fd, connection close" << std::endl;
         }
       } else {
         //handle new connection
         int new_sock = accept(_sock, (struct sockaddr*)& remote_client, &addrlen);
         if (new_sock == -1) {
-          CLOG_FATAL("Error when acceting");
+          LOG(FATAL) << "Error when acceting" << std::endl;
         }
 
-        CLOG_DEBUG("A new connection %d\n", new_sock);
+        LOG(DEBUG) << "A new connection " <<  new_sock << std::endl;
         PollManager::get_instance().watch(new_sock, FD_MODE::READ);
         _channels[new_sock] = new Channel(new_sock, this);
       }
@@ -304,7 +296,7 @@ void PollServer::loop() {
       }
       Channel::State state = _channels[*it]->write();
       if (state == Channel::State::WRITE_READY) {
-        CLOG_DEBUG("%d fd finish write\n", *it);
+        LOG(DEBUG) << *it << " fd finish write" << std::endl;
         PollManager::get_instance().unwatch(*it, FD_MODE::WRITE);
       }
     }
@@ -339,7 +331,7 @@ void PollServer::_add_job_wrapper(Channel* chan) {
 
 void PollServer::_handle_request(Channel* chan) {
   try {
-    CLOG_DEBUG("Start to handle request\n");
+    LOG(DEBUG) << "Start to handle request" << std::endl;
     std::string msg = chan->get_msg();
     chan->clear_msg();
 
@@ -347,22 +339,19 @@ void PollServer::_handle_request(Channel* chan) {
       throw ServerBadMessageException();
     }
 
-    CLOG_DEBUG("get message %s\n", msg.c_str());
-    size_t handler_id;
-    Request request = Proto::build_request(msg, handler_id); // could throw json parse exception
-    CLOG_DEBUG("build request\n");
-    int r = _handler->on_request(handler_id, &request);
-    CLOG_DEBUG("finish handling\n");
+    LOG(DEBUG) << "get message " << msg.c_str() << std::endl;
+    Request request = Proto::build_request(msg); // could throw json parse exception
+    int r = _handler->on_request(&request);
 
     if (r == 0) {
       throw ServerMethodNotFoundException();
     }
 
     msg = Proto::build_response(request.get_response());
-    CLOG_DEBUG("send back msg %s\n", msg.c_str());
+    LOG(DEBUG) << "send back msg " << msg.c_str() << std::endl;
     chan->send(msg);
   } catch(ServerException& e) {
-    CLOG_DEBUG("%s\n", e.what());
+    LOG(DEBUG) << e.what() << std::endl;
     std::string err_msg = Proto::build_error(e.get_code());
     chan->send(err_msg);
   }

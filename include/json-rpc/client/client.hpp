@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
+#include <time.h>
 
 #include <unistd.h>
 
@@ -21,9 +22,6 @@ using namespace JCONER;
 class AbstractClient {
   public:
     AbstractClient(ClientConnector& client) : _client(client) {
-#ifdef JSONRPC_DEBUG
-      CLASS_INIT_LOGGER("AbstractClient", L_DEBUG)
-#endif
       srand(getpid());
       _clientno = rand();
       _msg_id = 0;
@@ -48,19 +46,13 @@ class AbstractClient {
     void call(size_t method_hash, OutSerializer& sout, R* r);
 
   private:
-    std::string _build_request(size_t method_hash, OutSerializer& sout);
-
-    JValue* _parse_response_internal(std::string response);
     void _parse_response(std::string response);
     template<class R>
       void _parse_response(std::string response, R& r);
-    
-  CLASS_MAKE_LOGGER
 };
 
 void AbstractClient::call(size_t method_hash, OutSerializer& sout) {
-  std::string msg = _build_request(method_hash, sout);
-  CLOG_DEBUG("build request %s\n", msg.c_str());
+  std::string msg = Proto::build_request(_clientno, 0, _msg_id ++, time(0), method_hash, sout);
 
   int tried = 0;
   static const int MAX_TRY = 8;
@@ -69,7 +61,6 @@ void AbstractClient::call(size_t method_hash, OutSerializer& sout) {
     try {
       std::string rst = "";
       _client.send_and_response(msg, rst);
-      CLOG_DEBUG("result from connector %s\n", rst.c_str());
 
       _parse_response(rst);
       break;
@@ -89,8 +80,7 @@ void AbstractClient::call(size_t method_hash, OutSerializer& sout) {
 
 template<class R>
 void AbstractClient::call (size_t method_hash, OutSerializer& sout, R* r) {
-  std::string msg = _build_request(method_hash, sout);
-  CLOG_DEBUG("build request %s\n", msg.c_str());
+  std::string msg = Proto::build_request(_clientno, 0, _msg_id ++, time(0), method_hash, sout);
 
   int tried = 0;
   static const int MAX_TRY = 8;
@@ -99,7 +89,6 @@ void AbstractClient::call (size_t method_hash, OutSerializer& sout, R* r) {
     try {
       std::string rst;
       _client.send_and_response(msg, rst);
-      CLOG_DEBUG("result from connector %s\n", rst.c_str());
 
       _parse_response(rst, *r);
       break;
@@ -111,77 +100,30 @@ void AbstractClient::call (size_t method_hash, OutSerializer& sout, R* r) {
       tried ++;
     }
   }
+  if (tried > MAX_TRY) {
+    throw std::runtime_error("PRC call failed");
+  }
 }
 
-
-std::string AbstractClient::_build_request(size_t method_hash, OutSerializer& sout) {
-  JObject* obj = new JObject();
-  obj->put(CLIENTNO, _clientno);
-  obj->put(MESSAGEID, _msg_id);
-  _msg_id ++;
-  obj->put(METHOD, method_hash);
-  obj->put(PARAM, sout.getContent());
-
-  std::string msg = dumps(obj);
-  return msg;
-}
-
-JValue* AbstractClient::_parse_response_internal(std::string response) {
-  PError err;
-  JValue* json_resp = loads(response, err);
-  if (json_resp == nullptr) {
-    CLOG_FATAL("Json parse error, json text[%S], error text[%s]\n", response.c_str(), err.text.c_str());
-  }
-
-  if (! json_resp->isObject() ) {
-    CLOG_FATAL("Json format error, response has to be an object. Json text[%s]\n", response.c_str());
-  }
-
-  if (json_resp->contain(ERROR) ) {
-    int errcode = json_resp->get(ERROR)->getInteger();
-    switch(errcode) {
-      case SOCKET_CLOSED:
-        CLOG_DEBUG("Server closed socket\n");
-        throw ServerCloseSocketException();
-        break;
-      case  METHOD_NOT_FOUND:
-        CLOG_DEBUG("Method not found on server\n");
-        throw ServerMethodNotFoundException();
-        break;
-      case JSON_NOT_PARSED:
-        CLOG_DEBUG("Server parse json failed\n");
-        throw ServerJsonNotParsedException();
-        break;
-        throw ServerJsonNotParsedException();
-      case PARAM_MISMATCH:
-        CLOG_DEBUG("Parameters don't match with the method\n");
-        throw ServerParamMismatchException();
-        break;
-      case BAD_MESSAGE:
-        CLOG_DEBUG("Message sent out was broken\n");
-        throw ServerBadMessageException();
-      default:
-        CLOG_FATAL("Unknown error code %d\n", errcode);
-    }
-  }
-  return json_resp;
-}
 
 void AbstractClient::_parse_response(std::string response) {
-    _parse_response_internal(response);
+  JValue* rst = Proto::parse_response(response);
+  delete rst;
 }
 
 template<class R>
 void AbstractClient::_parse_response(std::string response, R& r) {
-  JValue* json_resp = _parse_response_internal(response);
+  JValue* json_resp = Proto::parse_response(response);
 
-  if (!json_resp->contain(RESULT)) {
-    CLOG_DEBUG("Response text format erro, should have result, [%s]\n", response.c_str());
+  if (!json_resp->contain(Result)) {
+    LOG(DEBUG) << VarString::format("Response text format erro, should have result, [%s]\n", response.c_str()) << std::endl;
+    delete json_resp;
     throw NoResultException();
   }
 
-  InSerializer sin(json_resp->get(RESULT));
+  InSerializer sin(json_resp->get(Result));
   sin & r;
+  delete json_resp;
 }
 
 #endif

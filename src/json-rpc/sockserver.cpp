@@ -8,9 +8,6 @@ static const int POOL_SIZE = 16;
 SockServer::SockServer(std::string port)
     : ServerConnector(port),
       _pool_size(POOL_SIZE), _stop(false),  _thread(this) {
-#ifdef JSONRPC_DEBUG
-  CLASS_INIT_LOGGER("SockServer", L_DEBUG)
-#endif
   _connections.clear();
 }
 
@@ -57,12 +54,12 @@ void SockServer::loop() {
     socklen_t client_len = sizeof(struct sockaddr_in);
     int client_sock = accept(_sock, (struct sockaddr*) &client_info, &client_len);
 
-    CLOG_DEBUG("New connection\n");
+    LOG(DEBUG) << "New connection" << std::endl;
     if (_connections.size() >= _pool_size) {
-      CLOG_DEBUG("Remove oldest connection\n");
+      LOG(DEBUG) << "Remove oldest connection" << std::endl;
       auto oldconn = _connections.front();
       oldconn->shutdown();
-      CLOG_DEBUG("Connection shutdown\n");
+      LOG(DEBUG) << "Connection shutdown" << std::endl;
       _connections.pop_front();
       delete oldconn;
     }
@@ -79,10 +76,14 @@ void SockServer::loop() {
 
 void ConnectionThread::run() {
   while(_pconn->_connected) {
-    size_t handler_id;
     try {
-      Request request = _pconn->_build_request(handler_id);
-      int rst = _pserver->_handler->on_request(handler_id, &request);
+      std::string msg = _pconn->_recv();
+
+      if (msg == "") {
+        throw ServerBadMessageException();
+      }
+      Request request = Proto::build_request(msg);
+      int rst = _pserver->_handler->on_request(&request);
       if (rst == 0) {
         throw ServerMethodNotFoundException();
       }
@@ -92,9 +93,9 @@ void ConnectionThread::run() {
         throw ServerCloseSocketException();
 
     } catch(ServerException& e) {
-      CLOG_DEBUG("%s\n",e.what());
+      LOG(DEBUG) << e.what() << std::endl;
       _pconn->_mutex.lock();
-      if (!_pconn->_connected || e.get_code() != SOCKET_CLOSED) {
+      if (!_pconn->_connected || e.get_code() != Proto::SOCKET_CLOSED) {
         // server close connection
         _pconn->_send_error(e.get_code());
       } else {
@@ -116,16 +117,16 @@ std::string Connection::_recv() {
   int len = read(_client_sock, (void*)&size, sizeof(int));
 
   if (len == 0) {
-    CLOG_DEBUG("connection closed\n");
+    LOG(DEBUG) << "connection closed" << std::endl;
     throw ServerCloseSocketException();
   }
 
   if (len != sizeof(int) || size <= 0) {
-    CLOG_INFO("Error when read size of incoming message\n");
+    LOG(INFO) << "Error when read size of incoming message" << std::endl;
     return "";
   }
 
-  CLOG_DEBUG("The size of the message is %d\n", size);
+  LOG(DEBUG) << "The size of the message is " << size << std::endl;
 
   while(true) {
     int chunk_len = read(_client_sock, chunk, MAX_BUFF_SIZE);
@@ -148,7 +149,7 @@ void Connection::_send(std::string msg) {
   char chunk[MAX_CHUNK_SIZE];
 
   SizedRDONBuffer rd_buffer(msg.c_str(), msg.size());
-  CLOG_DEBUG("Send out message with %d bytes\n", msg.size());
+  LOG(DEBUG) << "Send out message with " << msg.size() << " bytes" << std::endl;
 
   while( true ) {
     int len = rd_buffer.read(chunk, MAX_CHUNK_SIZE);
@@ -159,21 +160,12 @@ void Connection::_send(std::string msg) {
       }
 
       if (real_len != len) {
-        CLOG_FATAL("write function error\n");
+        LOG(FATAL) << "write function error" << std::endl;
       }
     } else {
       break;
     }
   }
-}
-
-
-Request Connection::_build_request(size_t& handler_id) {
-  std::string msg = _recv();
-  if (msg == "") {
-    throw ServerBadMessageException();
-  }
-  return Proto::build_request(msg, handler_id);
 }
 
 void Connection::_send_response(Response& resp) {

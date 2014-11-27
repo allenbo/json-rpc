@@ -1,0 +1,13 @@
+{
+  "namespace" : "VecDemo",
+
+  "service" : [
+    {
+      "name" : "sort",
+      "params" : {
+        "vecs" : "std::vector<int>"
+      },
+      "return" : "std::vector<int>"
+    }
+  ]
+}
