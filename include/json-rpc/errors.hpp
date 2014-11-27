@@ -21,7 +21,7 @@ class ServerException: public std::exception {
  **/
 class ServerCloseSocketException: public ServerException {
   public:
-    ServerCloseSocketException() : ServerException(SOCKET_CLOSED) {}
+    ServerCloseSocketException() : ServerException(Proto::SOCKET_CLOSED) {}
     const char* what() const throw() {
       return "Server closes socket";
     }
@@ -33,7 +33,7 @@ class ServerCloseSocketException: public ServerException {
  **/
 class ServerBadMessageException: public ServerException {
   public:
-    ServerBadMessageException() : ServerException(BAD_MESSAGE) {}
+    ServerBadMessageException() : ServerException(Proto::BAD_MESSAGE) {}
     const char* what() const throw() {
       return "Bad message coming";
     }
@@ -44,7 +44,7 @@ class ServerBadMessageException: public ServerException {
  **/
 class ServerMethodNotFoundException: public ServerException {
   public:
-    ServerMethodNotFoundException(): ServerException(METHOD_NOT_FOUND) {}
+    ServerMethodNotFoundException(): ServerException(Proto::METHOD_NOT_FOUND) {}
     const char* what() const throw() {
       return  "Method not found in server";
     }
@@ -55,7 +55,7 @@ class ServerMethodNotFoundException: public ServerException {
  **/
 class ServerJsonNotParsedException : public ServerException {
   public:
-    ServerJsonNotParsedException() : ServerException(JSON_NOT_PARSED) {}
+    ServerJsonNotParsedException() : ServerException(Proto::JSON_NOT_PARSED) {}
     const char* what() const throw() {
       return "Json not parsed in server";
     }
@@ -67,7 +67,7 @@ class ServerJsonNotParsedException : public ServerException {
  **/
 class ServerParamMismatchException : public ServerException {
   public:
-    ServerParamMismatchException(): ServerException(PARAM_MISMATCH) {}
+    ServerParamMismatchException(): ServerException(Proto::PARAM_MISMATCH) {}
     const char* what() const throw() {
       return "Parameters mismatch in server";
     }

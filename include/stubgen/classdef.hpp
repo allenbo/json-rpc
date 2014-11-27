@@ -27,7 +27,7 @@ class ClassDef {
 
     void add_member(std::string name, std::string type) {
       if (_members.count(name) != 0) {
-        CLOG_INFO("Redefine member %s\n", name.c_str());
+        LOG(INFO) << "Redefine member " << name.c_str() << std::endl;
       }
       _members[name] = type;
     }
@@ -45,8 +45,6 @@ class ClassDef {
   private:
     std::string _name;
     std::map<std::string, std::string> _members;
-
-  CLASS_MAKE_LOGGER
 };
 
 ClassDef ClassDef::from_json(std::string name, JValue* value) {

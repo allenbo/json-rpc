@@ -7,7 +7,7 @@
 // base class for abstract service
 class ASIO {
   public:
-    virtual int on_request(size_t handler_id, Request*) = 0;
+    virtual int on_request(Request*) = 0;
 };
 
 #endif

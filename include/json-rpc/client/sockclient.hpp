@@ -28,7 +28,6 @@ class SockClient : public ClientConnector {
     std::string _host;
     std::string _port;
     struct addrinfo* _server_info;
-  CLASS_MAKE_LOGGER
 };
 
 #endif

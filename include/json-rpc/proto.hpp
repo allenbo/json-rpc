@@ -7,21 +7,15 @@
 
 using namespace JCONER;
 
-static const std::string METHOD = "method";
-static const std::string PARAM  = "params";
-static const std::string VERSION = "version";
-static const std::string CLIENTNO = "clientno";
-static const std::string MESSAGEID = "messageid";
-static const std::string RESULT = "result";
-static const std::string ERROR = "error";
-
-//error from server
-static const int SOCKET_CLOSED = 1;
-static const int METHOD_NOT_FOUND = 2;
-static const int JSON_NOT_PARSED = 3;
-static const int PARAM_MISMATCH = 4;
-static const int BAD_MESSAGE = 5;
-static const int BAD_RESPONSE = 6;
+static const std::string ClientNo = "clientno";
+static const std::string ServerNo = "serverno";
+static const std::string MessageId = "messageid";
+static const std::string Version = "version";
+static const std::string Timestamp = "timestamp";
+static const std::string Method = "method";
+static const std::string Param  = "params";
+static const std::string Result = "result";
+static const std::string Error = "error";
 
 //error in connection
 static const int READ_FAIL = 5;
@@ -33,10 +27,26 @@ static const int SOCKET_FAIL = 9;
 // Handle with protocol
 class Proto {
   public:
-    static Request build_request(std::string msg, size_t& handler_id);
+    enum {
+      SOCKET_CLOSED=1,
+      METHOD_NOT_FOUND,
+      JSON_NOT_PARSED,
+      PARAM_MISMATCH,
+      BAD_MESSAGE,
+      BAD_RESPONSE,
+    };
+
+
+    // server side protocol functions
+    static Request build_request(std::string msg);
     static std::string build_response(Response& resp);
     static std::string build_error(int code);
-    //TODO: Move client protocol code here
+    // client side protolcol functions
+    static JValue* parse_response(std::string response);
+    static std::string build_request(
+                         int clientno, int serverno,
+                         int messageid, long timestamp,
+                         size_t method_hash, OutSerializer& sout);
 };
 
 #endif

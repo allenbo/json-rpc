@@ -45,8 +45,6 @@ class PollManager {
 
     static PollManager _instance;
     PollManager();
-
-    CLASS_MAKE_LOGGER
 };
 
 
@@ -86,8 +84,6 @@ class PollServer : public ServerConnector {
     void _close_channels();
     void _add_job_wrapper(Channel* chan);
     void _handle_request(Channel*);
-
-    CLASS_MAKE_LOGGER
 };
 
 class Channel {
@@ -132,8 +128,6 @@ class Channel {
      * Now set busy to be true and blocking any other read callback
      */
     bool _busy;
-
-    CLASS_MAKE_LOGGER
 };
 
 #endif

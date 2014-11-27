@@ -6,9 +6,6 @@
 
 SockClient::SockClient(std::string host, std::string port)
     :_sock(UNINIT_SOCKET), _server_info(nullptr) {
-#ifdef JSONRPC_DEBUG
-  CLASS_INIT_LOGGER("SockClient", L_DEBUG)
-#endif
   _host = host;
   _port = port;
   struct addrinfo hints;
@@ -18,7 +15,7 @@ SockClient::SockClient(std::string host, std::string port)
   hints.ai_protocol = IPPROTO_TCP;
   int r = getaddrinfo(host.c_str(), port.c_str(), &hints, &_server_info);
   if (r != 0) {
-    CLOG_DEBUG("getaddrinfo error!\n");
+    LOG(DEBUG) << "getaddrinfo error!" << std::endl;
     throw HostFailException("Function getaddrinfo fail", _host, _port);
   }
 }
@@ -35,14 +32,14 @@ void SockClient::reconnect() {
       continue;
     }
     if (connect(_sock, ptr->ai_addr, (int)ptr->ai_addrlen) == 0) {
-      CLOG_DEBUG("connect to server\n");
+      LOG(DEBUG) << "connect to server" << std::endl;
       break;
     }
     close(_sock);
   }
 
   if (ptr == nullptr) {
-    CLOG_DEBUG("Can't connect to server\n");
+    LOG(DEBUG) << "Can't connect to server" << std::endl;
     throw HostFailException("Can't connect", _host, _port);
   }
 }
@@ -53,9 +50,9 @@ void SockClient::send_and_response(std::string message, std::string &result) {
   }
   
   _send(message);
-  CLOG_DEBUG("send message %s to server\n", message.c_str());
+  LOG(DEBUG) << "send message " << message << " to server" << std::endl;
   _recv(result);
-  CLOG_DEBUG("get result %s\n", result.c_str());
+  LOG(DEBUG) << "get result " <<  result << std::endl;
   return;
 }
 
@@ -64,13 +61,13 @@ void SockClient::_send(const std::string& msg) {
   char chunk[MAX_CHUNK_SIZE];
 
   SizedRDONBuffer rd_buffer(msg.c_str(), msg.size());
-  CLOG_DEBUG("Send out message with %d bytes\n", msg.size());
+  LOG(DEBUG) << "Send out message with " << msg.size() << " bytes" << std::endl;
 
   while( true ) {
     int len = rd_buffer.read(chunk, MAX_CHUNK_SIZE);
     if (len != 0) {
       if (write(_sock, chunk, len) != len) {
-        CLOG_INFO("write function error\n");
+        LOG(INFO) << "write function error" << std::endl;
         throw WriteFailException();
       }
     } else {
@@ -88,18 +85,18 @@ void SockClient::_recv(std::string& result) {
   int len = read(_sock, &size, sizeof(int));
 
   if (len != sizeof(int) || size <= 0){
-    CLOG_INFO("Read %d bytes of size of message\n", len);
+    LOG(INFO) << "Read " << len << " bytes of size of message" << std::endl;
     throw ReadFailException();
   }
 
-  CLOG_DEBUG("The size of the message is %d\n", size);
+  LOG(DEBUG) << "The size of the message is " << size << std::endl;
 
   WRONBuffer wr_buffer;
 
   while( true ) {
     int chunk_len = read(_sock, chunk, MAX_CHUNK_SIZE);
     if (chunk_len < 0) {
-      CLOG_INFO("read function error %d\n", chunk_len);
+      LOG(INFO) <<  "read function error " << chunk_len << std::endl;
       throw ReadFailException();
     }
 

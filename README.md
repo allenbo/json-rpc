@@ -119,6 +119,6 @@ int main() {
 
 This is how you compile these two files
 ```
-g++ -o DemoClient DemoClient.cpp -I. -I./include -L. -L./lib -ljconer -ljson-rpc -lpthread -std=c++11
-g++ -o DemoService DemoService.cpp -I. -I./include -L. -L./lib -ljconer -ljson-rpc -lpthread -std=c++11
+g++ -o DemoClient DemoClient.cpp -I. -I./include -L. -L./lib -ljson-rpc -ljconer-lpthread -std=c++11
+g++ -o DemoService DemoService.cpp -I. -I./include -L. -L./lib -ljson-rpc -jconer -lpthread -std=c++11
 ```
